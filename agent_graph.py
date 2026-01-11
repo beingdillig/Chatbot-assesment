@@ -9,17 +9,25 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import openai
+import os
 
-# 1. Setup LLM
+# 1. Setup LLM, Faiss
 llm = ChatOpenAI(
-    model_name="provider-2/gpt-oss-20b", # Replaced with your model name
-    base_url="https://api.a4f.co/v1",
-    api_key="ddc-a4f-ed13d613bd6c40089fd8a942d2f5a79f",
+    model_name=("MODEL_NAME","provider-2/gpt-oss-20b"), 
+    base_url=("OPENAI_BASE_URL","https://api.a4f.co/v1"),
+    api_key=os.getenv("OPENAI_API_KEY"),
     timeout=600
 )
 
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FAISS_PATH = os.path.join(BASE_DIR, "faiss_index")
+
+db = FAISS.load_local(
+    FAISS_PATH,
+    embeddings,
+    allow_dangerous_deserialization=True
+)
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
@@ -38,7 +46,6 @@ Otherwise, answer the user directly."""
 )
 def call_model(state: AgentState):
     print("---CALLING LLM---")
-    # We send a clean list of messages to avoid provider payload errors
     messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = llm.invoke(messages)
     return {"messages": [response]}
@@ -46,7 +53,6 @@ def call_model(state: AgentState):
 def tool_node(state: AgentState):
     print("---EXECUTING TOOL---")
     last_message = state["messages"][-1].content
-    # Extract the query from ACTION: query_knowledge_base("query")
     match = re.search(r'query_knowledge_base\("([^"]+)"\)', last_message)
     if match:
         query = match.group(1)

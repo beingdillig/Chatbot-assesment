@@ -1,25 +1,26 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
-from main import agent
+from agent_graph import agent
 
-app = FastAPI()
+app = FastAPI(title="LangGraph AI Agent with RAG")
+
+class AskRequest(BaseModel):
+    query: str
 
 @app.post("/ask")
-async def ask(request: Request):
-    data = await request.json()
-    user_query = data.get("query")
-    
-    # Initialize the state with a HumanMessage
-    inputs = {"messages": [HumanMessage(content=user_query)]}
-    
-    try:
-        # Run the agent
-        config = {"recursion_limit": 10}
-        result = agent.invoke(inputs, config=config)
-        
-        # Get the very last message from the LLM
-        final_answer = result["messages"][-1].content
-        return {"answer": final_answer}
-        
-    except Exception as e:
-        return {"error": str(e)}
+async def ask(req: AskRequest):
+    if not req.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+    inputs = {"messages": [HumanMessage(content=req.query)]}
+    config = {"recursion_limit": 10}
+
+    result = agent.invoke(inputs, config=config)
+    final_answer = result["messages"][-1].content
+
+    return {"answer": final_answer}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

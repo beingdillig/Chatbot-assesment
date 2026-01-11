@@ -1,0 +1,15 @@
+/venv\*
+\venv\*
+venv
+
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.idea/
+.vscode/
+*.log
+*.sqlite3
+/staticfiles/
+media/
+node_modules/
