@@ -9,12 +9,14 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import openai
+from dotenv import load_dotenv
 import os
 
+load_dotenv()
 # 1. Setup LLM, Faiss
 llm = ChatOpenAI(
-    model_name=("MODEL_NAME","provider-2/gpt-oss-20b"), 
-    base_url=("OPENAI_BASE_URL","https://api.a4f.co/v1"),
+    model_name=os.getenv("MODEL_NAME","provider-2/gpt-oss-20b"), 
+    base_url=os.getenv("OPENAI_BASE_URL","https://api.a4f.co/v1"),
     api_key=os.getenv("OPENAI_API_KEY"),
     timeout=600
 )
